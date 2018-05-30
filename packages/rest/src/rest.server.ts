@@ -167,14 +167,10 @@ export class RestServer extends Context implements Server, HttpServerLike {
 
     this.bind(RestBindings.HANDLER).toDynamicValue(() => this.httpHandler);
 
-    this._httpServer = new HttpServer(
-      this,
-      {
-        port: options.port,
-        host: options.host,
-      },
-      this.requestHandler,
-    );
+    this._httpServer = new HttpServer(this.requestHandler, {
+      port: options.port,
+      host: options.host,
+    });
   }
 
   protected _setupRequestHandler(options: RestServerConfig) {
@@ -580,7 +576,11 @@ export class RestServer extends Context implements Server, HttpServerLike {
     // Setup the HTTP handler so that we can verify the configuration
     // of API spec, controllers and routes at startup time.
     this._setupHandlerIfNeeded();
-    return this._httpServer.start();
+    await this._httpServer.start();
+    this.bind(RestBindings.PORT).to(this._httpServer.port);
+    this.bind(RestBindings.HOST).to(this._httpServer.host);
+    this.bind(RestBindings.URL).to(this._httpServer.url);
+    this.bind(RestBindings.PROTOCOL).to(this._httpServer.protocol);
   }
 
   /**
@@ -592,16 +592,6 @@ export class RestServer extends Context implements Server, HttpServerLike {
   async stop() {
     // Kill the server instance.
     return this._httpServer.stop();
-  }
-
-  /**
-   * Whether the REST server is listening or not
-   *
-   * @returns {Boolean}
-   * @memberof RestServer
-   */
-  public get listening(): Boolean {
-    return this._httpServer.listening;
   }
 
   protected _onUnhandledError(req: Request, res: Response, err: Error) {

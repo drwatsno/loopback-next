@@ -2,28 +2,57 @@
 // Node module: @loopback/http-server
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
-import {RestServer, RestComponent} from '@loopback/rest';
+import {HttpServer} from '../../';
 import {Application, ApplicationConfig} from '@loopback/core';
-import * as assert from 'assert';
+import {RestServer, RestComponent, RestBindings} from '@loopback/rest';
+import {supertest as request, expect} from '@loopback/testlab';
 
-describe('HttpServer', () => {
+describe('HttpServer (integration)', () => {
   it('starts server', async () => {
-    const server = await givenAServer();
+    const server = new HttpServer(
+      (req, res) => {
+        res.end();
+      },
+      {
+        port: 9000,
+        host: 'localhost',
+      },
+    );
     await server.start();
-    assert(server.listening, 'Server not started');
+    request(server.url)
+      .get('/')
+      .expect(200);
     await server.stop();
   });
 
+  // @bajtos how do we test this?
   it('stops server', async () => {
-    const server = await givenAServer();
+    const server = new HttpServer(
+      (req, res) => {
+        res.end();
+      },
+      {
+        port: 9000,
+        host: 'localhost',
+      },
+    );
     await server.start();
     await server.stop();
-    assert(!server.listening, 'Server not stopped');
+    return request(server.url)
+      .get('/')
+      .expect(200);
   });
 
-  async function givenAServer(options?: ApplicationConfig) {
-    const app = new Application(options);
+  it('supports RestBindings', async () => {
+    const app = new Application({
+      rest: {
+        port: 0,
+      },
+    });
     app.component(RestComponent);
-    return await app.getServer(RestServer);
-  }
+    const server = await app.getServer(RestServer);
+    server.bind(RestBindings.PORT).to(0);
+    await server.start();
+    // @bajtos `_httpServer` of `server` is protected, how do we check the port and other details here?
+  });
 });
