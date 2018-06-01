@@ -10,14 +10,21 @@ os:
   - osx
 
 script: ./bin/travis.sh
-env: TASK=test
+env: TASK=test COVERAGE=false
 install: npm install --ignore-scripts
 
 after_success:
-  - npm run coverage:ci
+  - if [ "${COVERAGE}" == "true" ]; then npm run coverage:ci; fi
 
 matrix:
+  exclude:
+    - node_js: "10.0.0"
+      os: linux
+      env: TASK=test COVERAGE=false
   include:
+    - node_js: "10"
+      os: linux
+      env: TASK=test COVERAGE=true
     - node_js: "8"
       os: linux
       env: TASK=code-lint
